@@ -146,6 +146,25 @@ textarea.in{min-height:56px;resize:vertical;font:inherit}
 .enl svg{color:var(--brand);flex:none}
 .enl span{display:grid;gap:2px;min-width:0}
 .enl small{color:var(--muted);font-size:13px}
+.enl-ic{width:48px;height:48px;border-radius:12px;object-fit:cover;flex:none;background:var(--surface-2)}
+.enl-svg{display:grid;place-items:center;color:var(--brand)}
+.enl-tx{display:grid;gap:2px;min-width:0;flex:1}
+.enl-tx small{color:var(--muted);font-size:13px;white-space:pre-wrap}
+.enl-ir{color:var(--muted);font-size:22px;line-height:1;flex:none}
+.modal.enl-modal{max-width:520px}
+.modal.enl-grid{max-width:max(440px,calc(170px * var(--cols) + 60px))}
+@media (min-width:640px){.modal.enl-modal{height:fit-content;max-height:calc(100vh - 32px)}}
+@media (max-width:480px){.enl-grid .enl{padding:10px 3px}.enl-grid .enl-tx b{font-size:12.5px;overflow-wrap:break-word;hyphens:auto}.enl-grid .enl-tx small{font-size:11.5px;overflow-wrap:break-word;hyphens:auto}}
+.enl-grid .enl-b{grid-template-columns:repeat(var(--cols),minmax(0,1fr));gap:10px}
+.enl-grid .enl{flex-direction:column;justify-content:flex-start;text-align:center;gap:8px;padding:14px 8px}
+.enl-grid .enl-ic{width:56px;height:56px}
+.enl-grid .enl-tx small{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.enl-grid .enl-ir{display:none}
+.vista-enl .vista-svc button{width:auto;padding:0 14px;font:inherit;font-size:14px;font-weight:600}
+.vista-enl-fila{display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px}
+.cols-enl{display:inline-flex;align-items:center;gap:10px;font-size:14px}
+.cols-enl input{width:150px;accent-color:var(--brand)}
+.cols-enl.off{opacity:.45}
 .promo{border:1px solid var(--line);border-radius:var(--r);background:var(--surface);overflow:hidden;display:grid}
 .promo img{width:100%;max-height:320px;object-fit:cover}
 .promo>div{padding:12px 14px;display:grid;gap:8px;justify-items:start}
@@ -456,12 +475,18 @@ function icoEnl(u){const s=String(u).toLowerCase(),p=d=>`<svg viewBox="0 0 24 24
   if(/maps|goo\.gl/.test(s))return p('<path d="M12 22s7-6.2 7-12a7 7 0 0 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/>');
   if(/instagram|tiktok|facebook|youtube/.test(s))return p('<rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/>');
   return p('<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>')}
-function vEnlaces(){const cf=INFO.config,t=cf.tituloEnlaces||'Redes, promociones y más';
-  return`<div class="ovl" data-act="cEnlCerrar"></div><div class="modal enl-modal" role="dialog" aria-modal="true" aria-label="${esc(t)}">
+// Icono de cada elemento: la foto que hayas subido (en pequeño) o un icono según el enlace o el tipo.
+function icoItem(e){if(e.foto)return`<img class="enl-ic" src="${esc(e.foto.replace(/sz=w\d+/,'sz=w240'))}" alt="" loading="lazy">`;
+  const p=d=>`<span class="enl-ic enl-svg"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg></span>`;
+  if(e.url)return`<span class="enl-ic enl-svg">${icoEnl(e.url)}</span>`;
+  if(e.tipo==='Promoción')return p('<path d="M3 12V4h8l10 10-8 8L3 12z"/><circle cx="7.5" cy="7.5" r="1.5"/>');
+  return p('<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.01"/>')}
+function vEnlaces(){const cf=INFO.config,t=cf.tituloEnlaces||'Redes, promociones y más',grid=cf.vistaEnlaces==='Cuadrícula',n=Math.min(4,Math.max(1,Math.round(+cf.colsEnlaces)||2));
+  const item=e=>{const tx=`${icoItem(e)}<span class="enl-tx"><b>${esc(e.titulo||String(e.url||'').replace(/^(mailto:|tel:|https?:\/\/)/,''))}</b>${e.texto?`<small>${esc(e.texto)}</small>`:''}</span>`;
+    return e.url?`<a class="enl" href="${esc(e.url)}" target="_blank" rel="noopener">${tx}<span class="enl-ir" aria-hidden="true">›</span></a>`:`<div class="enl">${tx}</div>`};
+  return`<div class="ovl" data-act="cEnlCerrar"></div><div class="modal enl-modal${grid?' enl-grid':''}" style="--cols:${n}" role="dialog" aria-modal="true" aria-label="${esc(t)}">
    <div class="modal-h"><h2>${esc(t)}</h2><button class="x" data-act="cEnlCerrar" aria-label="Cerrar">×</button></div>
-   <div class="modal-b enl-b">${(INFO.enlaces||[]).map(e=>e.tipo==='Enlace'&&e.url&&!e.foto
-     ?`<a class="enl" href="${esc(e.url)}" target="_blank" rel="noopener">${icoEnl(e.url)}<span><b>${esc(e.titulo||e.url.replace(/^(mailto:|tel:|https?:\/\/)/,''))}</b>${e.texto?`<small>${esc(e.texto)}</small>`:''}</span></a>`
-     :`<article class="promo">${e.foto?`<img src="${esc(e.foto)}" alt="" loading="lazy">`:''}<div>${e.titulo?`<h3>${esc(e.titulo)}</h3>`:''}${e.texto?`<p>${esc(e.texto)}</p>`:''}${e.url?`<a class="btn btn-p" href="${esc(e.url)}" target="_blank" rel="noopener">${e.tipo==='Enlace'?'Abrir':'Ver más'}</a>`:''}</div></article>`).join('')}</div></div>`}
+   <div class="modal-b enl-b">${(INFO.enlaces||[]).map(item).join('')}</div></div>`}
 function cPaso1(){
   const vis=INFO.servicios,cats=[...new Set(vis.map(s=>s.categoria||'Otros'))];
   if(C.anular)return vAnular();
@@ -769,10 +794,15 @@ function celda(tb,i,c,r){
   if(c.ty==='color')return`<td><input type="color" ${b} value="${esc(/^#[0-9a-f]{6}$/i.test(v)?v:'#888888')}"></td>`;
   const ty={num:'number',time:'time',date:'date'}[c.ty]||'text';
   return`<td><input class="in" type="${ty}" ${b} value="${esc(v)}"${c.step?` step="${c.step}"`:''}${c.ty==='num'?' min="0" style="width:'+(c.w||80)+'px"':w}${c.ph?` placeholder="${c.ph}"`:''}></td>`}
+// Panel > Enlaces: cómo se ve la ventana en la web (lista, o cuadrícula de 1 a 4 por fila).
+function vVistaEnlaces(){const cf=S.config,g=cf.vistaEnlaces==='Cuadrícula',n=Math.min(4,Math.max(1,Math.round(+cf.colsEnlaces)||2));
+  return`<div class="box vista-enl" style="max-width:none"><span class="lbl">Cómo se ve la ventana en la web de reservas</span>
+   <div class="vista-enl-fila"><div class="vista-svc" role="group" aria-label="Formato"><button data-act="pVistaEnl" data-v="Lista" aria-pressed="${!g}">Lista</button><button data-act="pVistaEnl" data-v="Cuadrícula" aria-pressed="${g}">Cuadrícula</button></div>
+   <label class="cols-enl${g?'':' off'}">Por fila: <b id="cols-enl-n">${n}</b><input type="range" min="1" max="4" step="1" value="${n}" data-cfg="colsEnlaces" ${g?'':'disabled'} aria-label="Elementos por fila" oninput="document.getElementById('cols-enl-n').textContent=this.value"></label></div></div>`}
 function vTabla(tb){
   const T=TABLAS[tb],rows=S[tb]||[];
   return cabecera(T.t,T.d,`<button class="btn btn-p" data-act="pAdd" data-tb="${tb}" ${P.ocupado?'disabled':''}>Añadir fila</button>`)+
-  `<div class="tbl-wrap"><table class="t${tb==='servicios'?' t-fija2':''}"><thead><tr>${T.cols.map(c=>`<th>${c.l}</th>`).join('')}<th></th></tr></thead><tbody>
+  `${tb==='enlaces'?vVistaEnlaces():''}<div class="tbl-wrap"><table class="t${tb==='servicios'?' t-fija2':''}"><thead><tr>${T.cols.map(c=>`<th>${c.l}</th>`).join('')}<th></th></tr></thead><tbody>
   ${rows.map((r,i)=>`<tr>${T.cols.map(c=>celda(tb,i,c,r)).join('')}<td class="acc">${P.del===tb+i?`<span class="muted">¿Eliminar?</span> <button class="btn btn-sm btn-bad" data-act="pDelSi" data-tb="${tb}" data-i="${i}">Sí</button> <button class="btn btn-sm" data-act="pDelNo">No</button>`:`<button class="btn btn-sm" data-act="pDel" data-tb="${tb}" data-i="${i}">Eliminar</button>`}</td></tr>`).join('')||`<tr><td colspan="${T.cols.length+1}" class="muted">Sin filas. Pulsa «Añadir fila».</td></tr>`}
   </tbody></table></div><p class="nota">Cada cambio se guarda en la pestaña ${T.t} de la hoja al salir de la casilla.${tb==='servicios'||tb==='enlaces'?' Las fotos se guardan en Drive y salen en la web de reservas.':''}</p>${tb==='servicios'||tb==='enlaces'?'<input type="file" id="f-svc" accept="image/*" hidden>':''}`}
 
@@ -924,6 +954,7 @@ const A={
  async pAdd(e){const tb=e.dataset.tb;P.ocupado=true;render();
    try{S=await pc('panelAnadir',tb,TABLAS[tb].nuevo());toast('Fila añadida a la hoja')}catch(err){}P.ocupado=false;render()},
  pDel(e){P.del=e.dataset.tb+e.dataset.i;render()},
+ async pVistaEnl(e){const v=e.dataset.v,antes=S.config.vistaEnlaces;S.config.vistaEnlaces=v;render();try{await pc('panelGuardarConfig','vistaEnlaces',v);toast('Guardado en la hoja')}catch(err){S.config.vistaEnlaces=antes;render()}},
  pFotoSvc(e){const f=document.getElementById('f-svc');if(!f)return;f.dataset.i=e.dataset.i;f.dataset.fila=e.dataset.tb||'servicios';f.value='';f.click()},
  async pQuitarFotoSvc(e){const tb=e.dataset.tb||'servicios',s=(S[tb]||[])[+e.dataset.i];if(!s)return;P.ocupado=true;render();try{await pc(tb==='enlaces'?'panelQuitarFotoEnlace':'panelQuitarFotoServicio',s.id);s.foto='';toast('Foto quitada')}catch(err){}P.ocupado=false;render()},
  pDelNo(){P.del=null;render()},
