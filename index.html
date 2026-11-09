@@ -110,6 +110,17 @@ button:disabled{cursor:not-allowed;opacity:.6}
 .svc-p{font-weight:700;font-variant-numeric:tabular-nums;text-align:right}
 .svc-d{font-size:13px;color:var(--muted)}
 .svc-m{font-size:13px;color:var(--muted);text-align:right;white-space:nowrap}
+.svc-card{display:grid;gap:0;border:1px solid var(--line);background:var(--surface);border-radius:var(--r);overflow:hidden}
+.svc-card .svc{border:0;border-radius:0;background:transparent}
+.svc.con-foto{grid-template-columns:1fr auto 64px}
+.svc-th{grid-row:1/3;grid-column:3;width:64px;height:64px;border-radius:10px;object-fit:cover;background:var(--surface-2)}
+.svc-det{display:flex;flex-direction:column;align-items:flex-start;gap:10px;padding:0 14px 12px}
+.svc-det .btn-det{font:inherit;font-size:13px;font-weight:600;color:var(--brand);background:transparent;border:1px solid var(--line);border-radius:999px;padding:5px 12px;cursor:pointer}
+.svc-det img{width:100%;max-height:340px;object-fit:cover;border-radius:12px;background:var(--surface-2)}
+.svc-det p{margin:0;font-size:14px;color:var(--muted);white-space:pre-wrap;border-left:3px solid var(--line);padding-left:10px}
+.f-svc{display:flex;align-items:center;gap:6px;white-space:nowrap}
+.f-svc img{width:40px;height:40px;border-radius:8px;object-fit:cover}
+textarea.in{min-height:56px;resize:vertical;font:inherit}
 .resumen{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:10px 12px;border-radius:var(--r);background:var(--accent-soft);font-size:14px}
 .resumen b{font-weight:600}
 .chips{display:flex;flex-wrap:wrap;gap:8px}
@@ -397,7 +408,11 @@ function cPaso1(){
   const anular=`<button class="link" data-act="cAnularAbrir" style="justify-self:center">¿Tienes que anular una cita?</button>`;
   if(!vis.length)return mias+`<section class="c-card"><p>Ahora mismo no hay servicios disponibles para reservar. Llámanos al ${esc(INFO.config.telefono)}.</p></section>`+anular;
   return mias+`<section class="c-card"><h2>${C.mias.length?'¿Reservamos otra?':'¿Qué te hacemos?'}</h2>${cats.map(c=>`<div class="cat"><div class="lbl">${esc(c)}</div>${vis.filter(s=>(s.categoria||'Otros')===c).map(s=>`
-    <button class="svc" data-act="cSvc" data-id="${esc(s.id)}"><span class="svc-n">${esc(s.nombre)}</span><span class="svc-p">${eur(s.precio)}</span><span class="svc-d">${esc(s.descripcion)}</span><span class="svc-m num">${s.duracion} min</span></button>`).join('')}</div>`).join('')}</section>`+anular}
+    ${tarjetaSvc(s)}`).join('')}</div>`).join('')}</section>`+anular}
+// Tarjeta de servicio: foto pequeña al lado y «Ver detalles» con la foto grande y la explicación.
+function tarjetaSvc(s){const abierto=C.det===s.id,hay=s.foto||s.descripcion;
+  return`<div class="svc-card"><button class="svc${s.foto&&!abierto?' con-foto':''}" data-act="cSvc" data-id="${esc(s.id)}"><span class="svc-n">${esc(s.nombre)}</span><span class="svc-p">${eur(s.precio)}</span><span class="svc-d"></span><span class="svc-m num">${s.duracion} min</span>${s.foto&&!abierto?`<img class="svc-th" src="${esc(s.foto)}" alt="" loading="lazy">`:''}</button>
+   ${hay?`<div class="svc-det">${abierto?`${s.foto?`<img src="${esc(s.foto)}" alt="${esc(s.nombre)}" loading="lazy">`:''}${s.descripcion?`<p>${esc(s.descripcion)}</p>`:''}`:''}<button class="btn-det" data-act="cDet" data-id="${esc(s.id)}" aria-expanded="${abierto}">${abierto?'Ocultar detalles':'Ver detalles'}</button></div>`:''}</div>`}
 function cPaso2(){
   const s=svcC(C.servicio),ps=s.profesionales||[];
   const grupo=(t,a,b)=>{const l=(C.horas||[]).filter(x=>x>=a&&x<b);return l.length?`<div class="lbl">${t}</div><div class="horas">${l.map(x=>`<button class="hora" data-act="cHora" data-t="${x}">${toHM(x)}</button>`).join('')}</div>`:''};
@@ -666,8 +681,8 @@ function cargarMinis(){
 const SINO=()=>['Sí','No'];
 const TABLAS={
  servicios:{t:'Servicios',d:'Lo que el cliente puede reservar. La duración total suma el tiempo extra entre clientes, que el cliente no ve.',
-  cols:[{k:'id',l:'ID',ty:'ro'},{k:'nombre',l:'Servicio',w:200},{k:'categoria',l:'Categoría',w:110},{k:'duracion',l:'Duración (min)',ty:'num',w:80},{k:'extra',l:'Extra (min)',ty:'num',w:70},{k:'total',l:'Total (min)',ty:'calc',f:r=>dur(r)},{k:'precio',l:'Precio (€)',ty:'num',w:80,step:'0.5'},{k:'quien',l:'Quién lo hace',w:130,ph:'Todas'},{k:'recurso',l:'Recurso',ty:'sel',o:()=>['',...S.recursos.map(r=>r.nombre)],w:160},{k:'visible',l:'Visible',ty:'sel',o:SINO},{k:'descripcion',l:'Descripción',w:220}],
-  nuevo:()=>({id:'S'+pad(Math.max(0,...S.servicios.map(s=>+String(s.id).slice(1)||0))+1),nombre:'Nuevo servicio',categoria:'',duracion:30,extra:0,precio:0,quien:'Todas',recurso:'',visible:'No',descripcion:''})},
+  cols:[{k:'id',l:'ID',ty:'ro'},{k:'nombre',l:'Servicio',w:200},{k:'foto',l:'Foto',ty:'foto'},{k:'descripcion',l:'Descripción (se ve en «Ver detalles»)',ty:'area',w:260},{k:'categoria',l:'Categoría',w:110},{k:'duracion',l:'Duración (min)',ty:'num',w:80},{k:'extra',l:'Extra (min)',ty:'num',w:70},{k:'total',l:'Total (min)',ty:'calc',f:r=>dur(r)},{k:'precio',l:'Precio (€)',ty:'num',w:80,step:'0.5'},{k:'quien',l:'Quién lo hace',w:130,ph:'Todas'},{k:'recurso',l:'Recurso',ty:'sel',o:()=>['',...S.recursos.map(r=>r.nombre)],w:160},{k:'visible',l:'Visible',ty:'sel',o:SINO}],
+  nuevo:()=>({id:'S'+pad(Math.max(0,...S.servicios.map(s=>+String(s.id).slice(1)||0))+1),nombre:'Nuevo servicio',categoria:'',duracion:30,extra:0,precio:0,quien:'Todas',recurso:'',visible:'No',descripcion:'',foto:''})},
  horarios:{t:'Horarios',d:'Una fila por franja de trabajo. Un turno partido son dos filas.',
   cols:[{k:'profesional',l:'Profesional',ty:'sel',o:()=>S.profesionales.map(p=>p.nombre)},{k:'dia',l:'Día',ty:'sel',o:()=>[...DIAS.slice(1),DIAS[0]]},{k:'desde',l:'Desde',ty:'time'},{k:'hasta',l:'Hasta',ty:'time'}],
   nuevo:()=>({profesional:(S.profesionales[0]||{}).nombre||'',dia:'Lunes',desde:'10:00',hasta:'14:00'})},
@@ -685,6 +700,8 @@ function celda(tb,i,c,r){
   if(c.ty==='ro')return`<td class="calc">${esc(v)}</td>`;
   if(c.ty==='calc')return`<td class="calc" data-calc="${tb}-${i}-${c.k}">${esc(c.f(r))}</td>`;
   if(c.ty==='sel'){const ops=c.o();if(v&&!ops.includes(v))ops.push(v);return`<td><select class="in" ${b}${w}>${ops.map(o=>`<option value="${esc(o)}" ${o===v?'selected':''}>${o?esc(o):'Ninguno'}</option>`).join('')}</select></td>`}
+  if(c.ty==='area')return`<td><textarea class="in" rows="2" ${b}${w}>${esc(v)}</textarea></td>`;
+  if(c.ty==='foto')return`<td><div class="f-svc">${v?`<img src="https://drive.google.com/thumbnail?id=${encodeURIComponent(v)}&sz=w120" alt="">`:''}<button class="btn btn-sm" data-act="pFotoSvc" data-i="${i}" ${P.ocupado?'disabled':''}>${v?'Cambiar':'Subir foto'}</button>${v?`<button class="btn btn-sm" data-act="pQuitarFotoSvc" data-i="${i}" ${P.ocupado?'disabled':''}>Quitar</button>`:''}</div></td>`;
   if(c.ty==='color')return`<td><input type="color" ${b} value="${esc(/^#[0-9a-f]{6}$/i.test(v)?v:'#888888')}"></td>`;
   const ty={num:'number',time:'time',date:'date'}[c.ty]||'text';
   return`<td><input class="in" type="${ty}" ${b} value="${esc(v)}"${c.step?` step="${c.step}"`:''}${c.ty==='num'?' min="0" style="width:'+(c.w||80)+'px"':w}${c.ph?` placeholder="${c.ph}"`:''}></td>`}
@@ -693,7 +710,7 @@ function vTabla(tb){
   return cabecera(T.t,T.d,`<button class="btn btn-p" data-act="pAdd" data-tb="${tb}" ${P.ocupado?'disabled':''}>Añadir fila</button>`)+
   `<div class="tbl-wrap"><table class="t"><thead><tr>${T.cols.map(c=>`<th>${c.l}</th>`).join('')}<th></th></tr></thead><tbody>
   ${rows.map((r,i)=>`<tr>${T.cols.map(c=>celda(tb,i,c,r)).join('')}<td class="acc">${P.del===tb+i?`<span class="muted">¿Eliminar?</span> <button class="btn btn-sm btn-bad" data-act="pDelSi" data-tb="${tb}" data-i="${i}">Sí</button> <button class="btn btn-sm" data-act="pDelNo">No</button>`:`<button class="btn btn-sm" data-act="pDel" data-tb="${tb}" data-i="${i}">Eliminar</button>`}</td></tr>`).join('')||`<tr><td colspan="${T.cols.length+1}" class="muted">Sin filas. Pulsa «Añadir fila».</td></tr>`}
-  </tbody></table></div><p class="nota">Cada cambio se guarda en la pestaña ${T.t} de la hoja al salir de la casilla.</p>`}
+  </tbody></table></div><p class="nota">Cada cambio se guarda en la pestaña ${T.t} de la hoja al salir de la casilla.${tb==='servicios'?' Las fotos se guardan en Drive y salen en la web de reservas.':''}</p>${tb==='servicios'?'<input type="file" id="f-svc" accept="image/*" hidden>':''}`}
 
 /* ---------- configuración y acceso ---------- */
 const CFG=[
@@ -789,6 +806,7 @@ function render(){
   cargarMinis()}
 const A={
  copiar(e){copiar(e.dataset.t)},
+ cDet(e){C.det=C.det===e.dataset.id?null:e.dataset.id;render()},
  cSvc(e){C.servicio=e.dataset.id;C.prof='';C.paso=2;cargarDias();scrollTo({top:0})},
  cIr(e){C.paso=+e.dataset.p;C.error='';render()},
  cProf(e){C.prof=e.dataset.n;cargarDias()},
@@ -837,6 +855,8 @@ const A={
  async pAdd(e){const tb=e.dataset.tb;P.ocupado=true;render();
    try{S=await pc('panelAnadir',tb,TABLAS[tb].nuevo());toast('Fila añadida a la hoja')}catch(err){}P.ocupado=false;render()},
  pDel(e){P.del=e.dataset.tb+e.dataset.i;render()},
+ pFotoSvc(e){const f=document.getElementById('f-svc');if(!f)return;f.dataset.i=e.dataset.i;f.value='';f.click()},
+ async pQuitarFotoSvc(e){const s=S.servicios[+e.dataset.i];if(!s)return;P.ocupado=true;render();try{await pc('panelQuitarFotoServicio',s.id);s.foto='';toast('Foto quitada')}catch(err){}P.ocupado=false;render()},
  pDelNo(){P.del=null;render()},
  async pDelSi(e){const tb=e.dataset.tb,r=S[tb][+e.dataset.i];P.del=null;
    try{S=await pc('panelBorrar',tb,r._r);toast('Fila eliminada de la hoja')}catch(err){}render()},
@@ -862,6 +882,10 @@ document.addEventListener('click',e=>{const el=e.target.closest('[data-act]');if
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape'){if(P.visor)P.visor=null;else if(P.drawer)P.drawer=null;else if(P.ficha)P.ficha=null;else return;render()}
   if(e.key==='Enter'&&e.target.matches('tr[data-act]'))A[e.target.dataset.act](e.target)});
+// Reduce la foto en el móvil antes de subirla (máx. 1200 px, JPG), para que suba rápido y la web cargue ligera.
+async function fotoReducida(file,max=1200){const img=await new Promise((ok,ko)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=()=>ko(new Error('No se puede leer esa foto. Prueba con otra o hazle una captura.'));i.src=URL.createObjectURL(file)});
+  const k=Math.min(1,max/Math.max(img.naturalWidth,img.naturalHeight)),c=document.createElement('canvas');c.width=Math.round(img.naturalWidth*k);c.height=Math.round(img.naturalHeight*k);
+  c.getContext('2d').drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(img.src);return c.toDataURL('image/jpeg',.82).split(',')[1]}
 document.addEventListener('change',async e=>{const t=e.target;
   if(t.id==='f-img'){const file=t.files[0],tipo=t.dataset.tipo;if(!file)return;
     if(!/^image\/(png|jpeg|webp)$/.test(file.type))return toast('Sube una imagen PNG, JPG o WebP.');
@@ -869,6 +893,11 @@ document.addEventListener('change',async e=>{const t=e.target;
     P.ocupado=true;render();
     try{const b64=await new Promise((ok,ko)=>{const r=new FileReader();r.onload=()=>ok(String(r.result).split(',')[1]);r.onerror=ko;r.readAsDataURL(file)});
       const r=await pc('panelSubirImagen',tipo,file.type,b64);S[tipo+'Url']=r.url;toast(tipo==='logo'?'Logo guardado':'Icono guardado')}catch(err){}
+    P.ocupado=false;render();return}
+  if(t.id==='f-svc'){const file=t.files[0],s=S.servicios[+t.dataset.i];if(!file||!s)return;
+    if(!/^image\//.test(file.type))return toast('Elige una foto.');
+    P.ocupado=true;render();
+    try{const b64=await fotoReducida(file);const r=await pc('panelFotoServicio',s.id,'image/jpeg',b64);s.foto=r.foto;toast('Foto guardada. Ya sale en la web de reservas')}catch(err){toast((err&&err.message)||'No se ha podido subir la foto')}
     P.ocupado=false;render();return}
   if(t.id==='f-subir'){const file=t.files[0],cita=t.dataset.cita;if(!file)return;
     if(!/^(image|video)\//.test(file.type))return toast('Solo se pueden subir fotos o vídeos.');
