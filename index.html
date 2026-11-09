@@ -264,6 +264,10 @@ table.t{border-collapse:collapse;width:100%;font-size:14px}
 .t .in{padding:6px 8px;font-size:14px}
 .t td.calc{color:var(--muted);font-variant-numeric:tabular-nums;background:var(--surface-2)}
 .t td.acc{white-space:nowrap;text-align:right}
+/* Servicios: ID y nombre se quedan fijos a la izquierda al desplazar la tabla */
+.t-fija2 th:nth-child(1),.t-fija2 td:nth-child(1){position:sticky;left:0;z-index:2;box-sizing:border-box;width:58px;min-width:58px;max-width:58px;background:var(--bg)}
+.t-fija2 th:nth-child(2),.t-fija2 td:nth-child(2){position:sticky;left:58px;z-index:2;background:var(--bg);box-shadow:8px 0 8px -8px rgb(0 0 0/.35)}
+.t-fija2 td:nth-child(1).calc{background:var(--bg)}
 .t td.r{text-align:right;font-variant-numeric:tabular-nums}
 .t input[type=color]{width:44px;height:32px;padding:2px;border:1px solid var(--line);border-radius:6px;background:var(--surface)}
 .filtros{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
@@ -768,7 +772,7 @@ function celda(tb,i,c,r){
 function vTabla(tb){
   const T=TABLAS[tb],rows=S[tb]||[];
   return cabecera(T.t,T.d,`<button class="btn btn-p" data-act="pAdd" data-tb="${tb}" ${P.ocupado?'disabled':''}>Añadir fila</button>`)+
-  `<div class="tbl-wrap"><table class="t"><thead><tr>${T.cols.map(c=>`<th>${c.l}</th>`).join('')}<th></th></tr></thead><tbody>
+  `<div class="tbl-wrap"><table class="t${tb==='servicios'?' t-fija2':''}"><thead><tr>${T.cols.map(c=>`<th>${c.l}</th>`).join('')}<th></th></tr></thead><tbody>
   ${rows.map((r,i)=>`<tr>${T.cols.map(c=>celda(tb,i,c,r)).join('')}<td class="acc">${P.del===tb+i?`<span class="muted">¿Eliminar?</span> <button class="btn btn-sm btn-bad" data-act="pDelSi" data-tb="${tb}" data-i="${i}">Sí</button> <button class="btn btn-sm" data-act="pDelNo">No</button>`:`<button class="btn btn-sm" data-act="pDel" data-tb="${tb}" data-i="${i}">Eliminar</button>`}</td></tr>`).join('')||`<tr><td colspan="${T.cols.length+1}" class="muted">Sin filas. Pulsa «Añadir fila».</td></tr>`}
   </tbody></table></div><p class="nota">Cada cambio se guarda en la pestaña ${T.t} de la hoja al salir de la casilla.${tb==='servicios'||tb==='enlaces'?' Las fotos se guardan en Drive y salen en la web de reservas.':''}</p>${tb==='servicios'||tb==='enlaces'?'<input type="file" id="f-svc" accept="image/*" hidden>':''}`}
 
