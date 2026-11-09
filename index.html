@@ -121,6 +121,12 @@ button:disabled{cursor:not-allowed;opacity:.6}
 .f-svc{display:flex;align-items:center;gap:6px;white-space:nowrap}
 .f-svc img{width:40px;height:40px;border-radius:8px;object-fit:cover}
 textarea.in{min-height:56px;resize:vertical;font:inherit}
+.sw-dur{display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:600}
+.sw-dur input{appearance:none;-webkit-appearance:none;width:46px;height:26px;border-radius:999px;background:var(--line);position:relative;cursor:pointer;margin:0;transition:background .15s}
+.sw-dur input::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgb(0 0 0/.25);transition:transform .15s}
+.sw-dur input:checked{background:var(--brand)}
+.sw-dur input:checked::after{transform:translateX(20px)}
+.sw-dur input:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
 .resumen{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:10px 12px;border-radius:var(--r);background:var(--accent-soft);font-size:14px}
 .resumen b{font-weight:600}
 .chips{display:flex;flex-wrap:wrap;gap:8px}
@@ -349,6 +355,8 @@ const app=document.getElementById('app');
    WEB DE RESERVAS
    ===================================================================== */
 let INFO=null;
+// Duración como la quiere ver el negocio: «90 min» o «1 h 30 min» (Configuración > Duración en la web).
+const fmtDur=m=>{m=Math.round(+m||0);if(!(INFO&&INFO.config&&INFO.config.formatoDur==='Horas')||m<60)return m+' min';const h=Math.floor(m/60),r=m%60;return h+' h'+(r?' '+r+' min':'')};
 let C={paso:1,servicio:null,prof:'',dias:null,fecha:null,horas:null,t:null,res:null,error:'',info:false,enviando:false,form:{nombre:'',telefono:'',acepto:false},cancel:null,
   mias:[],confMia:null,anular:null};
 const MIAS='citas-mias';
@@ -411,7 +419,7 @@ function cPaso1(){
     ${tarjetaSvc(s)}`).join('')}</div>`).join('')}</section>`+anular}
 // Tarjeta de servicio: foto pequeña al lado y «Ver detalles» con la foto grande y la explicación.
 function tarjetaSvc(s){const abierto=C.det===s.id,hay=s.foto||s.descripcion;
-  return`<div class="svc-card"><button class="svc${s.foto&&!abierto?' con-foto':''}" data-act="cSvc" data-id="${esc(s.id)}"><span class="svc-n">${esc(s.nombre)}</span><span class="svc-p">${eur(s.precio)}</span><span class="svc-d"></span><span class="svc-m num">${s.duracion} min</span>${s.foto&&!abierto?`<img class="svc-th" src="${esc(s.foto)}" alt="" loading="lazy">`:''}</button>
+  return`<div class="svc-card"><button class="svc${s.foto&&!abierto?' con-foto':''}" data-act="cSvc" data-id="${esc(s.id)}"><span class="svc-n">${esc(s.nombre)}</span><span class="svc-p">${eur(s.precio)}</span><span class="svc-d"></span><span class="svc-m num">${fmtDur(s.duracion)}</span>${s.foto&&!abierto?`<img class="svc-th" src="${esc(s.foto)}" alt="" loading="lazy">`:''}</button>
    ${hay?`<div class="svc-det">${abierto?`${s.foto?`<img src="${esc(s.foto)}" alt="${esc(s.nombre)}" loading="lazy">`:''}${s.descripcion?`<p>${esc(s.descripcion)}</p>`:''}`:''}<button class="btn-det" data-act="cDet" data-id="${esc(s.id)}" aria-expanded="${abierto}">${abierto?'Ocultar detalles':'Ver detalles'}</button></div>`:''}</div>`}
 function cPaso2(){
   const s=svcC(C.servicio),ps=s.profesionales||[];
@@ -422,7 +430,7 @@ function cPaso2(){
   if(C.dias&&!C.fecha)horas=`<p class="muted">No hay horas libres en los próximos días. Llámanos al ${esc(INFO.config.telefono)}.</p>`;
   else if(C.fecha)horas=`<h2>${cap(fLarga(C.fecha))}</h2>`+(C.horas===null?'<p class="cargando">Buscando horas…</p>':C.horas.length?grupo('Mañana',0,840)+grupo('Tarde',840,1440):'<p class="muted">No quedan horas libres este día.</p>');
   return`<section class="c-card">
-    <div class="resumen"><span><b>${esc(s.nombre)}</b> · ${s.duracion} min · ${eur(s.precio)}</span><button class="link" data-act="cIr" data-p="1">Cambiar</button></div>
+    <div class="resumen"><span><b>${esc(s.nombre)}</b> · ${fmtDur(s.duracion)} · ${eur(s.precio)}</span><button class="link" data-act="cIr" data-p="1">Cambiar</button></div>
     ${ps.length>1?`<div class="field"><span>¿Con quién?</span><div class="chips"><button class="chip" aria-pressed="${!C.prof}" data-act="cProf" data-n="">Me da igual</button>${ps.map(p=>`<button class="chip" aria-pressed="${C.prof===p}" data-act="cProf" data-n="${esc(p)}">${esc(p)}</button>`).join('')}</div></div>`:''}
     <div class="field"><span>Elige el día</span>${dias}</div>${horas}
     <p class="nota">Solo ves las horas en las que cabe el servicio completo.</p></section>`}
@@ -715,7 +723,7 @@ function vTabla(tb){
 /* ---------- configuración y acceso ---------- */
 const CFG=[
  ['Negocio'],['nombre','Nombre del negocio','Aparece en la web, el panel y los mensajes'],['tipo','Tipo de negocio',''],['direccion','Dirección','Se muestra en la confirmación'],['telefono','Teléfono del negocio','Para que el cliente pueda llamar'],['whatsapp','WhatsApp para avisos','Tu número: recibe un WhatsApp por cada cita nueva o cancelada'],['callmebot','Clave de CallMeBot','La APIKEY que te envía el bot (mira «Avisos por WhatsApp» arriba)'],['email','Email del negocio','Recibe un email por cada cita nueva'],['color','Color principal','Botones y detalles','color'],['color2','Color secundario','Fondos suaves y, en modo noche, botones','color'],['modo','Modo de la web de reservas','Día, noche o automático según el móvil de cada clienta','modo'],
- ['Reglas de reserva'],['intervalo','Intervalo entre horas (min)','Con 15 se ofrecen 10:00, 10:15, 10:30…','num'],['antMin','Antelación mínima (horas)','No se puede reservar con menos tiempo','num'],['antMax','Antelación máxima (días)','Hasta cuántos días vista','num'],['plazoCancelar','Plazo para cancelar (horas)','El cliente cancela desde su enlace hasta este límite','num'],['confirmacionAuto','Confirmación automática','No: la cita queda pendiente hasta que la confirmes','sino'],['eligeProfesional','El cliente elige profesional','No: se asigna la primera libre','sino'],['recordatorio','Recordatorio (horas antes)','0 para no enviarlo','num'],['prefijo','Letras de los códigos de cita','Van delante del número: BP001, BP002… Vacío: iniciales del negocio'],['maxPendientes','Máximo de citas pendientes por cliente','Se cuenta por teléfono. 0 para no poner límite. Las citas que creas tú desde el panel no cuentan','num'],
+ ['Reglas de reserva'],['intervalo','Intervalo entre horas (min)','Con 15 se ofrecen 10:00, 10:15, 10:30…','num'],['antMin','Antelación mínima (horas)','No se puede reservar con menos tiempo','num'],['antMax','Antelación máxima (días)','Hasta cuántos días vista','num'],['plazoCancelar','Plazo para cancelar (horas)','El cliente cancela desde su enlace hasta este límite','num'],['confirmacionAuto','Confirmación automática','No: la cita queda pendiente hasta que la confirmes','sino'],['eligeProfesional','El cliente elige profesional','No: se asigna la primera libre','sino'],['recordatorio','Recordatorio (horas antes)','0 para no enviarlo','num'],['prefijo','Letras de los códigos de cita','Van delante del número: BP001, BP002… Vacío: iniciales del negocio'],['formatoDur','Duración en la web','Cómo ven las clientas la duración de cada servicio: «90 min» o «1 h 30 min»','dur'],['carpeta','Carpeta de Drive para las fotos','Pega el enlace de una carpeta de tu Drive compartida como Editor con aplicacionesmovilesecija@gmail.com. Ahí se guardan las fotos de clientes y de servicios. Vacío: carpeta junto a la hoja'],['maxPendientes','Máximo de citas pendientes por cliente','Se cuenta por teléfono. 0 para no poner límite. Las citas que creas tú desde el panel no cuentan','num'],
  ['Privacidad'],['responsable','Responsable de los datos','Aparece en «Más información»'],['emailPrivacidad','Email para privacidad','Donde se pide borrar los datos'],['consentimiento','Texto de la casilla','Obligatoria para reservar','area']];
 function vConfig(){
   const u=S.urlReservas;
@@ -725,7 +733,7 @@ function vConfig(){
     <div class="field"><span>Este panel (solo para ti)</span><div class="copiar"><code>${esc(u)}?panel=1</code><button class="btn btn-sm" data-act="copiar" data-t="${esc(u)}?panel=1">Copiar</button></div></div></div>`:'')+
   vWhatsapp()+vMarca()+`<div class="cfg">${CFG.map(r=>{if(r.length===1)return`<div class="cfg-sec"><span class="lbl">${r[0]}</span></div>`;
     const[k,l,h,ty]=r,v=S.config[k]??'',b=`id="cfg-${k}" data-cfg="${k}"`;
-    const inp=ty==='modo'?`<select class="in" ${b}>${['Automático','Claro','Oscuro'].map(o=>`<option ${o===v?'selected':''}>${o}</option>`).join('')}</select>`:ty==='sino'?`<select class="in" ${b}>${SINO().map(o=>`<option ${o===v?'selected':''}>${o}</option>`).join('')}</select>`:ty==='area'?`<textarea class="in" rows="3" ${b}>${esc(v)}</textarea>`:ty==='color'?`<input type="color" ${b} value="${esc(/^#[0-9a-f]{6}$/i.test(v)?v:'#C2185B')}" style="width:60px;height:36px;border:1px solid var(--line);border-radius:6px;background:var(--surface)">`:`<input class="in" ${b} type="${ty==='num'?'number':'text'}" ${ty==='num'?'min="0"':''} value="${esc(v)}">`;
+    const inp=ty==='dur'?`<span class="sw-dur"><span>Minutos</span><input type="checkbox" role="switch" ${b} ${v==='Horas'?'checked':''} aria-label="Mostrar en horas"><span>Horas</span></span>`:ty==='modo'?`<select class="in" ${b}>${['Automático','Claro','Oscuro'].map(o=>`<option ${o===v?'selected':''}>${o}</option>`).join('')}</select>`:ty==='sino'?`<select class="in" ${b}>${SINO().map(o=>`<option ${o===v?'selected':''}>${o}</option>`).join('')}</select>`:ty==='area'?`<textarea class="in" rows="3" ${b}>${esc(v)}</textarea>`:ty==='color'?`<input type="color" ${b} value="${esc(/^#[0-9a-f]{6}$/i.test(v)?v:'#C2185B')}" style="width:60px;height:36px;border:1px solid var(--line);border-radius:6px;background:var(--surface)">`:`<input class="in" ${b} type="${ty==='num'?'number':'text'}" ${ty==='num'?'min="0"':''} value="${esc(v)}">`;
     return`<label class="cfg-row" for="cfg-${k}"><span><b>${l}</b>${h?`<small>${h}</small>`:''}</span>${inp}</label>`}).join('')}</div>`}
 const COMBOS=[['Morado y lila','#6A3FA0','#DCC6F7'],['Morado suave','#8456C2','#EADCFB'],['Morado intenso','#4E2A84','#CDB2F0'],['Ciruela y rosa','#7A2E6E','#F2D3E8']];
 function vMarca(){const cf=S.config;
@@ -910,7 +918,7 @@ document.addEventListener('change',async e=>{const t=e.target;
     const val=col.ty==='num'?(t.value===''?0:+t.value):t.value,antes=r[t.dataset.k];r[t.dataset.k]=val;
     T.cols.filter(c=>c.ty==='calc').forEach(c=>{const z=document.querySelector(`[data-calc="${t.dataset.tb}-${t.dataset.i}-${c.k}"]`);if(z)z.textContent=c.f(r)});
     try{await pc('panelGuardarCelda',t.dataset.tb,r._r,t.dataset.k,val);toast('Guardado en la hoja')}catch(err){r[t.dataset.k]=antes}return}
-  if(t.dataset.cfg){const k=t.dataset.cfg,val=t.type==='number'?+t.value:t.value,antes=S.config[k];S.config[k]=val;if(['color','color2','modo'].includes(k))aplicarColor();
+  if(t.dataset.cfg){const k=t.dataset.cfg,val=t.type==='number'?+t.value:t.type==='checkbox'?(t.checked?'Horas':'Minutos'):t.value,antes=S.config[k];S.config[k]=val;if(['color','color2','modo'].includes(k))aplicarColor();
     try{await pc('panelGuardarConfig',k,val);toast('Guardado en la hoja');if(k==='nombre')render()}catch(err){S.config[k]=antes;aplicarColor(S.config.color)}return}
   if(t.dataset.ch==='pProf'){P.prof=t.value;render();return}
   if(t.dataset.ch==='pEstado'){P.lf.estado=t.value;render();return}
