@@ -121,6 +121,17 @@ button:disabled{cursor:not-allowed;opacity:.6}
 .f-svc{display:flex;align-items:center;gap:6px;white-space:nowrap}
 .f-svc img{width:40px;height:40px;border-radius:8px;object-fit:cover}
 textarea.in{min-height:56px;resize:vertical;font:inherit}
+.btn-enl{justify-self:center;font:inherit;font-weight:600;color:var(--brand);background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:10px 18px;cursor:pointer}
+.enl-modal{max-width:520px}
+.enl-b{gap:12px}
+.enl{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface);color:var(--fg);text-decoration:none}
+.enl svg{color:var(--brand);flex:none}
+.enl span{display:grid;gap:2px;min-width:0}
+.enl small{color:var(--muted);font-size:13px}
+.promo{border:1px solid var(--line);border-radius:var(--r);background:var(--surface);overflow:hidden;display:grid}
+.promo img{width:100%;max-height:320px;object-fit:cover}
+.promo>div{padding:12px 14px;display:grid;gap:8px;justify-items:start}
+.promo p{margin:0;white-space:pre-wrap;color:var(--muted);font-size:14px}
 .sw-dur{display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:600}
 .sw-dur input{appearance:none;-webkit-appearance:none;width:46px;height:26px;border-radius:999px;background:var(--line);position:relative;cursor:pointer;margin:0;transition:background .15s}
 .sw-dur input::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgb(0 0 0/.25);transition:transform .15s}
@@ -408,7 +419,22 @@ function vCliente(){
     h+=`<ol class="c-steps">${n.map((x,i)=>`<li class="${i+1<C.paso?'hecho':''}" ${i+1===C.paso?'aria-current="step"':''}>${i+1}. ${x}</li>`).join('')}</ol>`}
   h+=[cPaso1,cPaso2,cPaso3,cPaso4][C.paso-1]();
   if(cf.telefono)h+=`<p class="nota" style="text-align:center">¿Dudas? Llámanos al <b>${esc(cf.telefono)}</b></p>`;
-  return h+'</div>'}
+  if((INFO.enlaces||[]).length)h+=`<button class="btn-enl" data-act="cEnl">${esc(cf.tituloEnlaces||'Redes, promociones y más')}</button>`;
+  return h+'</div>'+(C.enl?vEnlaces():'')}
+// Ventana de enlaces, redes y promociones (se rellena desde el panel, apartado Enlaces).
+function icoEnl(u){const s=String(u).toLowerCase(),p=d=>`<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+  if(s.startsWith('mailto:'))return p('<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>');
+  if(s.startsWith('tel:'))return p('<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/>');
+  if(/wa\.me|whatsapp/.test(s))return p('<path d="M21 12a9 9 0 0 1-13.5 7.8L3 21l1.2-4.4A9 9 0 1 1 21 12z"/>');
+  if(/maps|goo\.gl/.test(s))return p('<path d="M12 22s7-6.2 7-12a7 7 0 0 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/>');
+  if(/instagram|tiktok|facebook|youtube/.test(s))return p('<rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/>');
+  return p('<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>')}
+function vEnlaces(){const cf=INFO.config,t=cf.tituloEnlaces||'Redes, promociones y más';
+  return`<div class="ovl" data-act="cEnlCerrar"></div><div class="modal enl-modal" role="dialog" aria-modal="true" aria-label="${esc(t)}">
+   <div class="modal-h"><h2>${esc(t)}</h2><button class="x" data-act="cEnlCerrar" aria-label="Cerrar">×</button></div>
+   <div class="modal-b enl-b">${(INFO.enlaces||[]).map(e=>e.tipo==='Enlace'&&e.url&&!e.foto
+     ?`<a class="enl" href="${esc(e.url)}" target="_blank" rel="noopener">${icoEnl(e.url)}<span><b>${esc(e.titulo||e.url.replace(/^(mailto:|tel:|https?:\/\/)/,''))}</b>${e.texto?`<small>${esc(e.texto)}</small>`:''}</span></a>`
+     :`<article class="promo">${e.foto?`<img src="${esc(e.foto)}" alt="" loading="lazy">`:''}<div>${e.titulo?`<h3>${esc(e.titulo)}</h3>`:''}${e.texto?`<p>${esc(e.texto)}</p>`:''}${e.url?`<a class="btn btn-p" href="${esc(e.url)}" target="_blank" rel="noopener">${e.tipo==='Enlace'?'Abrir':'Ver más'}</a>`:''}</div></article>`).join('')}</div></div>`}
 function cPaso1(){
   const vis=INFO.servicios,cats=[...new Set(vis.map(s=>s.categoria||'Otros'))];
   if(C.anular)return vAnular();
@@ -484,7 +510,7 @@ let S=null,TOKEN=null;
 try{TOKEN=sessionStorage.getItem('citas-token')}catch(e){}
 let P={vista:'calendario',modo:'semana',fecha:null,prof:'',drawer:null,ficha:null,visor:null,msg:'',lf:{ambito:'proximas',estado:'',q:''},cq:'',del:null,confAnular:false,ocupado:false};
 const MINI={};
-const NAV=[['calendario','Calendario'],['citas','Citas'],['clientes','Clientes'],['servicios','Servicios'],['horarios','Horarios'],['bloqueos','Bloqueos'],['profesionales','Profesionales'],['recursos','Recursos'],['configuracion','Configuración'],['acceso','Acceso']];
+const NAV=[['calendario','Calendario'],['citas','Citas'],['clientes','Clientes'],['servicios','Servicios'],['enlaces','Enlaces'],['horarios','Horarios'],['bloqueos','Bloqueos'],['profesionales','Profesionales'],['recursos','Recursos'],['configuracion','Configuración'],['acceso','Acceso']];
 async function pc(fn,...a){
   try{return await api(fn,TOKEN,...a)}
   catch(e){const m=msgErr(e);
@@ -700,6 +726,9 @@ const TABLAS={
  profesionales:{t:'Profesionales',d:'Las personas que atienden. El color es el de sus citas en el calendario.',
   cols:[{k:'id',l:'ID',ty:'ro'},{k:'nombre',l:'Nombre',w:150},{k:'telefono',l:'Teléfono',w:130},{k:'color',l:'Color',ty:'color'},{k:'activa',l:'Activa',ty:'sel',o:SINO}],
   nuevo:()=>({id:'P'+pad(Math.max(0,...S.profesionales.map(s=>+String(s.id).slice(1)||0))+1),nombre:'Nueva',telefono:'',color:'#00897B',activa:'No'})},
+ enlaces:{t:'Enlaces',d:'Lo que sale en la ventana del botón del final de la web de reservas. Tipo «Enlace»: redes, email, WhatsApp o web. «Promoción» o «Texto»: foto y explicación, con botón si pones enlace. Se ordenan por el número de «Orden».',
+  cols:[{k:'tipo',l:'Tipo',ty:'sel',o:()=>['Enlace','Promoción','Texto'],w:130},{k:'titulo',l:'Título',w:200},{k:'foto',l:'Foto',ty:'foto'},{k:'texto',l:'Texto',ty:'area',w:260},{k:'url',l:'Enlace (web, Instagram, email, teléfono…)',w:240,ph:'https://… o un email'},{k:'visible',l:'Visible',ty:'sel',o:SINO},{k:'orden',l:'Orden',ty:'num',w:60}],
+  nuevo:()=>({id:'E'+pad(Math.max(0,...(S.enlaces||[]).map(s=>+String(s.id).slice(1)||0))+1),tipo:'Enlace',titulo:'Nuevo enlace',texto:'',url:'',foto:'',visible:'Sí',orden:(S.enlaces||[]).length+1})},
  recursos:{t:'Recursos',d:'Lo que también se ocupa durante la cita. Con 2 mesas puede haber dos citas a la vez que usen mesa.',
   cols:[{k:'nombre',l:'Recurso',w:200},{k:'cantidad',l:'Cantidad',ty:'num',w:80},{k:'activo',l:'Activo',ty:'sel',o:SINO}],
   nuevo:()=>({nombre:'Nuevo recurso',cantidad:1,activo:'Sí'})}};
@@ -709,21 +738,21 @@ function celda(tb,i,c,r){
   if(c.ty==='calc')return`<td class="calc" data-calc="${tb}-${i}-${c.k}">${esc(c.f(r))}</td>`;
   if(c.ty==='sel'){const ops=c.o();if(v&&!ops.includes(v))ops.push(v);return`<td><select class="in" ${b}${w}>${ops.map(o=>`<option value="${esc(o)}" ${o===v?'selected':''}>${o?esc(o):'Ninguno'}</option>`).join('')}</select></td>`}
   if(c.ty==='area')return`<td><textarea class="in" rows="2" ${b}${w}>${esc(v)}</textarea></td>`;
-  if(c.ty==='foto')return`<td><div class="f-svc">${v?`<img src="https://drive.google.com/thumbnail?id=${encodeURIComponent(v)}&sz=w120" alt="">`:''}<button class="btn btn-sm" data-act="pFotoSvc" data-i="${i}" ${P.ocupado?'disabled':''}>${v?'Cambiar':'Subir foto'}</button>${v?`<button class="btn btn-sm" data-act="pQuitarFotoSvc" data-i="${i}" ${P.ocupado?'disabled':''}>Quitar</button>`:''}</div></td>`;
+  if(c.ty==='foto')return`<td><div class="f-svc">${v?`<img src="https://drive.google.com/thumbnail?id=${encodeURIComponent(v)}&sz=w120" alt="">`:''}<button class="btn btn-sm" data-act="pFotoSvc" data-tb="${tb}" data-i="${i}" ${P.ocupado?'disabled':''}>${v?'Cambiar':'Subir foto'}</button>${v?`<button class="btn btn-sm" data-act="pQuitarFotoSvc" data-tb="${tb}" data-i="${i}" ${P.ocupado?'disabled':''}>Quitar</button>`:''}</div></td>`;
   if(c.ty==='color')return`<td><input type="color" ${b} value="${esc(/^#[0-9a-f]{6}$/i.test(v)?v:'#888888')}"></td>`;
   const ty={num:'number',time:'time',date:'date'}[c.ty]||'text';
   return`<td><input class="in" type="${ty}" ${b} value="${esc(v)}"${c.step?` step="${c.step}"`:''}${c.ty==='num'?' min="0" style="width:'+(c.w||80)+'px"':w}${c.ph?` placeholder="${c.ph}"`:''}></td>`}
 function vTabla(tb){
-  const T=TABLAS[tb],rows=S[tb];
+  const T=TABLAS[tb],rows=S[tb]||[];
   return cabecera(T.t,T.d,`<button class="btn btn-p" data-act="pAdd" data-tb="${tb}" ${P.ocupado?'disabled':''}>Añadir fila</button>`)+
   `<div class="tbl-wrap"><table class="t"><thead><tr>${T.cols.map(c=>`<th>${c.l}</th>`).join('')}<th></th></tr></thead><tbody>
   ${rows.map((r,i)=>`<tr>${T.cols.map(c=>celda(tb,i,c,r)).join('')}<td class="acc">${P.del===tb+i?`<span class="muted">¿Eliminar?</span> <button class="btn btn-sm btn-bad" data-act="pDelSi" data-tb="${tb}" data-i="${i}">Sí</button> <button class="btn btn-sm" data-act="pDelNo">No</button>`:`<button class="btn btn-sm" data-act="pDel" data-tb="${tb}" data-i="${i}">Eliminar</button>`}</td></tr>`).join('')||`<tr><td colspan="${T.cols.length+1}" class="muted">Sin filas. Pulsa «Añadir fila».</td></tr>`}
-  </tbody></table></div><p class="nota">Cada cambio se guarda en la pestaña ${T.t} de la hoja al salir de la casilla.${tb==='servicios'?' Las fotos se guardan en Drive y salen en la web de reservas.':''}</p>${tb==='servicios'?'<input type="file" id="f-svc" accept="image/*" hidden>':''}`}
+  </tbody></table></div><p class="nota">Cada cambio se guarda en la pestaña ${T.t} de la hoja al salir de la casilla.${tb==='servicios'||tb==='enlaces'?' Las fotos se guardan en Drive y salen en la web de reservas.':''}</p>${tb==='servicios'||tb==='enlaces'?'<input type="file" id="f-svc" accept="image/*" hidden>':''}`}
 
 /* ---------- configuración y acceso ---------- */
 const CFG=[
  ['Negocio'],['nombre','Nombre del negocio','Aparece en la web, el panel y los mensajes'],['tipo','Tipo de negocio',''],['direccion','Dirección','Se muestra en la confirmación'],['telefono','Teléfono del negocio','Para que el cliente pueda llamar'],['whatsapp','WhatsApp para avisos','Tu número: recibe un WhatsApp por cada cita nueva o cancelada'],['callmebot','Clave de CallMeBot','La APIKEY que te envía el bot (mira «Avisos por WhatsApp» arriba)'],['email','Email del negocio','Recibe un email por cada cita nueva'],['color','Color principal','Botones y detalles','color'],['color2','Color secundario','Fondos suaves y, en modo noche, botones','color'],['modo','Modo de la web de reservas','Día, noche o automático según el móvil de cada clienta','modo'],
- ['Reglas de reserva'],['intervalo','Intervalo entre horas (min)','Con 15 se ofrecen 10:00, 10:15, 10:30…','num'],['antMin','Antelación mínima (horas)','No se puede reservar con menos tiempo','num'],['antMax','Antelación máxima (días)','Hasta cuántos días vista','num'],['plazoCancelar','Plazo para cancelar (horas)','El cliente cancela desde su enlace hasta este límite','num'],['confirmacionAuto','Confirmación automática','No: la cita queda pendiente hasta que la confirmes','sino'],['eligeProfesional','El cliente elige profesional','No: se asigna la primera libre','sino'],['recordatorio','Recordatorio (horas antes)','0 para no enviarlo','num'],['prefijo','Letras de los códigos de cita','Van delante del número: BP001, BP002… Vacío: iniciales del negocio'],['formatoDur','Duración en la web','Cómo ven las clientas la duración de cada servicio: «90 min» o «1 h 30 min»','dur'],['carpeta','Carpeta de Drive para las fotos','Pega el enlace de una carpeta de tu Drive compartida como Editor con aplicacionesmovilesecija@gmail.com. Ahí se guardan las fotos de clientes y de servicios. Vacío: carpeta junto a la hoja'],['maxPendientes','Máximo de citas pendientes por cliente','Se cuenta por teléfono. 0 para no poner límite. Las citas que creas tú desde el panel no cuentan','num'],
+ ['Reglas de reserva'],['intervalo','Intervalo entre horas (min)','Con 15 se ofrecen 10:00, 10:15, 10:30…','num'],['antMin','Antelación mínima (horas)','No se puede reservar con menos tiempo','num'],['antMax','Antelación máxima (días)','Hasta cuántos días vista','num'],['plazoCancelar','Plazo para cancelar (horas)','El cliente cancela desde su enlace hasta este límite','num'],['confirmacionAuto','Confirmación automática','No: la cita queda pendiente hasta que la confirmes','sino'],['eligeProfesional','El cliente elige profesional','No: se asigna la primera libre','sino'],['recordatorio','Recordatorio (horas antes)','0 para no enviarlo','num'],['prefijo','Letras de los códigos de cita','Van delante del número: BP001, BP002… Vacío: iniciales del negocio'],['formatoDur','Duración en la web','Cómo ven las clientas la duración de cada servicio: «90 min» o «1 h 30 min»','dur'],['tituloEnlaces','Título del botón de enlaces','El botón del final de la web de reservas que abre tus redes y promociones (apartado Enlaces). Vacío: «Redes, promociones y más»'],['carpeta','Carpeta de Drive para las fotos','Pega el enlace de una carpeta de tu Drive compartida como Editor con aplicacionesmovilesecija@gmail.com. Ahí se guardan las fotos de clientes y de servicios. Vacío: carpeta junto a la hoja'],['maxPendientes','Máximo de citas pendientes por cliente','Se cuenta por teléfono. 0 para no poner límite. Las citas que creas tú desde el panel no cuentan','num'],
  ['Privacidad'],['responsable','Responsable de los datos','Aparece en «Más información»'],['emailPrivacidad','Email para privacidad','Donde se pide borrar los datos'],['consentimiento','Texto de la casilla','Obligatoria para reservar','area']];
 function vConfig(){
   const u=S.urlReservas;
@@ -814,6 +843,8 @@ function render(){
   cargarMinis()}
 const A={
  copiar(e){copiar(e.dataset.t)},
+ cEnl(){C.enl=true;render()},
+ cEnlCerrar(){C.enl=false;render()},
  cDet(e){C.det=C.det===e.dataset.id?null:e.dataset.id;render()},
  cSvc(e){C.servicio=e.dataset.id;C.prof='';C.paso=2;cargarDias();scrollTo({top:0})},
  cIr(e){C.paso=+e.dataset.p;C.error='';render()},
@@ -863,8 +894,8 @@ const A={
  async pAdd(e){const tb=e.dataset.tb;P.ocupado=true;render();
    try{S=await pc('panelAnadir',tb,TABLAS[tb].nuevo());toast('Fila añadida a la hoja')}catch(err){}P.ocupado=false;render()},
  pDel(e){P.del=e.dataset.tb+e.dataset.i;render()},
- pFotoSvc(e){const f=document.getElementById('f-svc');if(!f)return;f.dataset.i=e.dataset.i;f.value='';f.click()},
- async pQuitarFotoSvc(e){const s=S.servicios[+e.dataset.i];if(!s)return;P.ocupado=true;render();try{await pc('panelQuitarFotoServicio',s.id);s.foto='';toast('Foto quitada')}catch(err){}P.ocupado=false;render()},
+ pFotoSvc(e){const f=document.getElementById('f-svc');if(!f)return;f.dataset.i=e.dataset.i;f.dataset.fila=e.dataset.tb||'servicios';f.value='';f.click()},
+ async pQuitarFotoSvc(e){const tb=e.dataset.tb||'servicios',s=(S[tb]||[])[+e.dataset.i];if(!s)return;P.ocupado=true;render();try{await pc(tb==='enlaces'?'panelQuitarFotoEnlace':'panelQuitarFotoServicio',s.id);s.foto='';toast('Foto quitada')}catch(err){}P.ocupado=false;render()},
  pDelNo(){P.del=null;render()},
  async pDelSi(e){const tb=e.dataset.tb,r=S[tb][+e.dataset.i];P.del=null;
    try{S=await pc('panelBorrar',tb,r._r);toast('Fila eliminada de la hoja')}catch(err){}render()},
@@ -888,7 +919,7 @@ const A={
  async vBorrarSi(){const id=P.visor.id;try{await pc('panelBorrarFoto',id);S.fotos=S.fotos.filter(f=>f.id!==id);delete MINI[id];P.visor=null;toast('Archivo borrado')}catch(err){}render()}};
 document.addEventListener('click',e=>{const el=e.target.closest('[data-act]');if(!el)return;e.preventDefault();A[el.dataset.act]?.(el)});
 document.addEventListener('keydown',e=>{
-  if(e.key==='Escape'){if(P.visor)P.visor=null;else if(P.drawer)P.drawer=null;else if(P.ficha)P.ficha=null;else return;render()}
+  if(e.key==='Escape'){if(typeof C!=='undefined'&&C.enl){C.enl=false;render();return}if(P.visor)P.visor=null;else if(P.drawer)P.drawer=null;else if(P.ficha)P.ficha=null;else return;render()}
   if(e.key==='Enter'&&e.target.matches('tr[data-act]'))A[e.target.dataset.act](e.target)});
 // Reduce la foto en el móvil antes de subirla (máx. 1200 px, JPG), para que suba rápido y la web cargue ligera.
 async function fotoReducida(file,max=1200){const img=await new Promise((ok,ko)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=()=>ko(new Error('No se puede leer esa foto. Prueba con otra o hazle una captura.'));i.src=URL.createObjectURL(file)});
@@ -902,10 +933,10 @@ document.addEventListener('change',async e=>{const t=e.target;
     try{const b64=await new Promise((ok,ko)=>{const r=new FileReader();r.onload=()=>ok(String(r.result).split(',')[1]);r.onerror=ko;r.readAsDataURL(file)});
       const r=await pc('panelSubirImagen',tipo,file.type,b64);S[tipo+'Url']=r.url;toast(tipo==='logo'?'Logo guardado':'Icono guardado')}catch(err){}
     P.ocupado=false;render();return}
-  if(t.id==='f-svc'){const file=t.files[0],s=S.servicios[+t.dataset.i];if(!file||!s)return;
+  if(t.id==='f-svc'){const tb=t.dataset.fila||'servicios',file=t.files[0],s=(S[tb]||[])[+t.dataset.i];if(!file||!s)return;
     if(!/^image\//.test(file.type))return toast('Elige una foto.');
     P.ocupado=true;render();
-    try{const b64=await fotoReducida(file);const r=await pc('panelFotoServicio',s.id,'image/jpeg',b64);s.foto=r.foto;toast('Foto guardada. Ya sale en la web de reservas')}catch(err){toast((err&&err.message)||'No se ha podido subir la foto')}
+    try{const b64=await fotoReducida(file);const r=await pc(tb==='enlaces'?'panelFotoEnlace':'panelFotoServicio',s.id,'image/jpeg',b64);s.foto=r.foto;toast('Foto guardada. Ya sale en la web de reservas')}catch(err){toast((err&&err.message)||'No se ha podido subir la foto')}
     P.ocupado=false;render();return}
   if(t.id==='f-subir'){const file=t.files[0],cita=t.dataset.cita;if(!file)return;
     if(!/^(image|video)\//.test(file.type))return toast('Solo se pueden subir fotos o vídeos.');
