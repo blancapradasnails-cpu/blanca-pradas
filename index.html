@@ -78,6 +78,14 @@ button:disabled{cursor:not-allowed;opacity:.6}
 .err{color:var(--bad);font-size:14px;font-weight:600;margin:0}
 .nota{font-size:13px;color:var(--muted);margin:0}
 .cargando{color:var(--muted);font-size:14px;padding:12px 0}
+/* Esqueleto mientras llegan los datos (en vez de «Cargando…») */
+.sk{display:grid;gap:10px}
+.sk-l,.sk-c{position:relative;overflow:hidden;background:var(--surface-2);border-radius:10px}
+.sk-l{height:24px;width:50%;margin-bottom:6px}
+.sk-c{height:72px;border-radius:var(--r)}
+.sk-l::after,.sk-c::after{content:"";position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgb(255 255 255/.35),transparent);animation:sk 1.2s infinite}
+@keyframes sk{to{transform:translateX(100%)}}
+@media (prefers-reduced-motion:reduce){.sk-l::after,.sk-c::after{animation:none}}
 .pill{display:inline-block;font-size:12px;font-weight:600;padding:2px 9px;border-radius:999px;white-space:nowrap}
 .e-confirmada{background:var(--ok-soft);color:var(--ok)}
 .e-completada{background:var(--surface-2);color:var(--muted)}
@@ -360,7 +368,7 @@ table.t{border-collapse:collapse;width:100%;font-size:14px}
 </style>
 </head>
 <body>
-<div id="app"><p class="cargando">Cargando…</p></div>
+<div id="app"><div class="c-wrap" aria-busy="true" aria-label="Cargando"><header class="c-head con-logo"><img class="logo-img" src="logo.jpg" alt="" onerror="this.remove()"></header><section class="c-card sk"><div class="sk-l"></div><div class="sk-c"></div><div class="sk-c"></div><div class="sk-c"></div><div class="sk-c"></div></section></div></div>
 <div class="toast" id="toast" hidden></div>
 <script>
 /* ---------- utilidades ---------- */
@@ -501,7 +509,7 @@ function cPaso1(){
     ${tarjetaSvc(s)}`).join('')}</div>`).join('')}</section>`+anular}
 // Tarjeta de servicio: foto pequeña al lado y «Ver detalles» con la foto grande y la explicación.
 function tarjetaSvc(s){const abierto=C.det===s.id,hay=s.foto||s.descripcion,res=INFO.config.botonReservar==='Sí';
-  return`<div class="svc-card"><button class="svc${s.foto&&!abierto?' con-foto':''}" data-act="cSvc" data-id="${esc(s.id)}"><span class="svc-n">${esc(s.nombre)}</span><span class="svc-p">${eur(s.precio)}</span><span class="svc-d"></span><span class="svc-m num">${fmtDur(s.duracion)}</span>${s.foto&&!abierto?`<img class="svc-th" src="${esc(s.foto)}" alt="Ver foto de ${esc(s.nombre)}" loading="lazy" data-act="cFoto" data-src="${esc(s.foto)}" data-t="${esc(s.nombre)}">`:''}</button>
+  return`<div class="svc-card"><button class="svc${s.foto&&!abierto?' con-foto':''}" data-act="cSvc" data-id="${esc(s.id)}"><span class="svc-n">${esc(s.nombre)}</span><span class="svc-p">${eur(s.precio)}</span><span class="svc-d"></span><span class="svc-m num">${fmtDur(s.duracion)}</span>${s.foto&&!abierto?`<img class="svc-th" src="${esc(s.foto.replace(/sz=w\d+/,'sz=w400'))}" alt="Ver foto de ${esc(s.nombre)}" loading="lazy" data-act="cFoto" data-src="${esc(s.foto)}" data-t="${esc(s.nombre)}">`:''}</button>
    ${hay||res?`<div class="svc-det">${abierto?`${s.foto?`<img class="zoom" src="${esc(s.foto)}" alt="Ver foto de ${esc(s.nombre)}" loading="lazy" data-act="cFoto" data-src="${esc(s.foto)}" data-t="${esc(s.nombre)}">`:''}${s.descripcion?`<p>${esc(s.descripcion)}</p>`:''}`:''}<div class="svc-acc">${hay?`<button class="btn-det" data-act="cDet" data-id="${esc(s.id)}" aria-expanded="${abierto}">${abierto?'Ocultar detalles':'Ver detalles'}</button>`:''}${res?`<button class="btn-res" data-act="cSvc" data-id="${esc(s.id)}" aria-label="Reservar ${esc(s.nombre)}">Reservar</button>`:''}</div></div>`:''}</div>`}
 function cPaso2(){
   const s=svcC(C.servicio),ps=s.profesionales||[];
@@ -1081,9 +1089,17 @@ document.addEventListener('submit',async e=>{const f=e.target.dataset.form;if(!f
 (async()=>{
   aplicarColor();
   if(MODO==='panel'){document.title='Panel de control';document.body.classList.add('es-panel');if(TOKEN)await cargarPanel();else render();return}
-  try{INFO=await api('publicoInicio');INFO.url=INFO.url||WEB;aplicarColor(INFO.config.color)}catch(e){app.innerHTML='<p class="err">No se ha podido cargar. Recarga la página.</p>';return}
+  // La portada se enseña al momento con los datos de la última visita (si los hay) y se actualiza por detrás.
+  const libre=()=>C.paso===1&&!C.enl&&!C.foto;
+  let crudo=null,previo=null;try{crudo=localStorage.getItem('inicio-citas');previo=JSON.parse(crudo||'null')}catch(e){}
+  if(MODO==='cancelar'||!(previo&&previo.config&&Array.isArray(previo.servicios)))previo=null;
+  if(previo){INFO=previo;INFO.url=INFO.url||WEB;aplicarColor();render();cargarMias().then(()=>{if(libre())render()})}
+  let nuevo;try{nuevo=await api('publicoInicio')}catch(e){if(!previo)app.innerHTML='<p class="err">No se ha podido cargar. Recarga la página.</p>';return}
+  const txt=JSON.stringify(nuevo);try{localStorage.setItem('inicio-citas',txt)}catch(e){}
+  INFO=nuevo;INFO.url=INFO.url||WEB;aplicarColor();
   if(MODO==='cancelar'){render();try{C.cancel=await api('publicoCita',CODIGO)}catch(e){C.cancel={error:'No se ha podido cargar. Recarga la página.'}}render();return}
-  await cargarMias();render()})();
+  if(!previo){render();cargarMias().then(()=>{if(libre())render()})}
+  else if(txt!==crudo&&libre())render()})();
 </script>
 </body>
 </html>
