@@ -437,7 +437,7 @@ const app=document.getElementById('app');
    ===================================================================== */
 let INFO=null;
 // Servicios en lista (uno por fila, por defecto) o en cuadrícula (dos por fila); se recuerda en cada móvil.
-let VISTA_DIA='tira';try{if(localStorage.getItem('vistaDia')==='cal')VISTA_DIA='cal'}catch(err){}
+let VISTA_DIA='cal';try{if(localStorage.getItem('vistaDia')==='tira')VISTA_DIA='tira'}catch(err){}
 let VISTA_SVC='lista';try{if(localStorage.getItem('vistaSvc')==='cuadricula')VISTA_SVC='cuadricula'}catch(err){}
 // Duración como la quiere ver el negocio: «90 min» o «1 h 30 min» (Configuración > Duración en la web).
 const fmtDur=m=>{m=Math.round(+m||0);if(!(INFO&&INFO.config&&INFO.config.formatoDur==='Horas')||m<60)return m+' min';const h=Math.floor(m/60),r=m%60;return h+' h'+(r?' '+r+' min':'')};
