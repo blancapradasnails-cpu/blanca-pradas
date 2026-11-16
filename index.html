@@ -1029,6 +1029,8 @@ document.addEventListener('keydown',e=>{
 async function fotoReducida(file,max=1200){const img=await new Promise((ok,ko)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=()=>ko(new Error('No se puede leer esa foto. Prueba con otra o hazle una captura.'));i.src=URL.createObjectURL(file)});
   const k=Math.min(1,max/Math.max(img.naturalWidth,img.naturalHeight)),c=document.createElement('canvas');c.width=Math.round(img.naturalWidth*k);c.height=Math.round(img.naturalHeight*k);
   c.getContext('2d').drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(img.src);return c.toDataURL('image/jpeg',.82).split(',')[1]}
+let COLA_CELDAS=Promise.resolve();
+document.addEventListener('focusout',e=>{const t=e.target;if(t&&t.matches&&t.matches('input[type="time"][data-tb]')){const r=(S&&S[t.dataset.tb]||[])[+t.dataset.i];if(r&&t.value&&t.value!==String(r[t.dataset.k]||'')){t.dataset.salir='1';t.dispatchEvent(new Event('change',{bubbles:true}))}}});
 document.addEventListener('change',async e=>{const t=e.target;
   if(t.id==='f-img'){const file=t.files[0],tipo=t.dataset.tipo;if(!file)return;
     if(!/^image\/(png|jpeg|webp)$/.test(file.type))return toast('Sube una imagen PNG, JPG o WebP.');
@@ -1049,10 +1051,14 @@ document.addEventListener('change',async e=>{const t=e.target;
     try{const b64=await new Promise((ok,ko)=>{const r=new FileReader();r.onload=()=>ok(String(r.result).split(',')[1]);r.onerror=ko;r.readAsDataURL(file)});
       const f=await pc('panelSubirFoto',cita,file.name,file.type,b64,'');S.fotos.push(f);toast(f.tipo+' guardada en Drive')}catch(err){}
     if(P.ficha)P.ficha.subiendo=null;render();return}
-  if(t.dataset.tb){const T=TABLAS[t.dataset.tb],r=S[t.dataset.tb][+t.dataset.i],col=T.cols.find(c=>c.k===t.dataset.k);
+  // Horas: se guardan al salir de la casilla, no a mitad de escribir (si no, «9:3» se guardaba como 09:03).
+  if(t.dataset.tb&&t.type==='time'&&!t.dataset.salir&&document.activeElement===t)return;
+  if(t.dataset.tb){delete t.dataset.salir;const T=TABLAS[t.dataset.tb],r=S[t.dataset.tb][+t.dataset.i],col=T.cols.find(c=>c.k===t.dataset.k);
     const val=col.ty==='num'?(t.value===''?0:+t.value):t.value,antes=r[t.dataset.k];r[t.dataset.k]=val;
     T.cols.filter(c=>c.ty==='calc').forEach(c=>{const z=document.querySelector(`[data-calc="${t.dataset.tb}-${t.dataset.i}-${c.k}"]`);if(z)z.textContent=c.f(r)});
-    try{await pc('panelGuardarCelda',t.dataset.tb,r._r,t.dataset.k,val);toast('Guardado en la hoja')}catch(err){r[t.dataset.k]=antes}return}
+    // Los guardados van en fila, uno detrás de otro, para que el último valor escrito sea siempre el que queda en la hoja.
+    const tb=t.dataset.tb,fila=r._r,k=t.dataset.k;
+    COLA_CELDAS=COLA_CELDAS.then(()=>pc('panelGuardarCelda',tb,fila,k,val)).then(()=>toast('Guardado en la hoja'),()=>{r[k]=antes});return}
   if(t.dataset.cfg){const k=t.dataset.cfg,val=t.type==='number'?+t.value:t.type==='checkbox'?(t.checked?'Horas':'Minutos'):t.value,antes=S.config[k];S.config[k]=val;if(['color','color2','modo'].includes(k))aplicarColor();
     try{await pc('panelGuardarConfig',k,val);toast('Guardado en la hoja');if(k==='nombre')render()}catch(err){S.config[k]=antes;aplicarColor(S.config.color)}return}
   if(t.dataset.ch==='pProf'){P.prof=t.value;render();return}
