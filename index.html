@@ -109,6 +109,11 @@ button:disabled{cursor:not-allowed;opacity:.6}
 .c-steps li{font-size:12px;font-weight:600;color:var(--muted);padding-top:8px;border-top:3px solid var(--line)}
 .c-steps li.hecho{border-color:color-mix(in srgb,var(--accent) 45%,var(--line))}
 .c-steps li[aria-current="step"]{border-color:var(--accent);color:var(--fg)}
+.c-steps li{padding-top:0}
+.c-steps button{display:block;width:100%;text-align:left;font:inherit;color:inherit;background:none;border:0;padding:8px 0 4px;margin-top:-3px;border-top:3px solid transparent;cursor:pointer}
+.c-steps button:disabled{cursor:default}
+.c-steps button:not(:disabled):hover{color:var(--fg)}
+.c-steps button:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
 .c-card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:grid;gap:14px}
 .c-card h2{font-size:20px}
 .cat{display:grid;gap:8px}
@@ -489,7 +494,7 @@ function vCliente(){
   const cf=INFO.config;
   let h=INFO.logo?`<div class="c-wrap"><header class="c-head con-logo"><img class="logo-img" src="${INFO.logo}" alt=""><h1 class="sr">${esc(cf.nombre)}</h1>${cf.direccion?`<p>${esc(cf.direccion)}</p>`:''}</header>`:`<div class="c-wrap"><header class="c-head"><div class="c-logo" aria-hidden="true">${esc((cf.nombre||'?')[0])}</div><div><h1>${esc(cf.nombre)}</h1><p>${esc(cf.tipo)}${cf.direccion?' · '+esc(cf.direccion):''}</p></div></header>`;
   if(C.paso<4){const n=['Servicio','Día y hora','Tus datos'];
-    h+=`<ol class="c-steps">${n.map((x,i)=>`<li class="${i+1<C.paso?'hecho':''}" ${i+1===C.paso?'aria-current="step"':''}>${i+1}. ${x}</li>`).join('')}</ol>`}
+    h+=`<ol class="c-steps">${n.map((x,i)=>`<li class="${i+1<C.paso?'hecho':''}" ${i+1===C.paso?'aria-current="step"':''}><button data-act="cPasoIr" data-p="${i+1}" ${pasoOk(i+1)?'':'disabled'}>${i+1}. ${x}</button></li>`).join('')}</ol>`}
   h+=[cPaso1,cPaso2,cPaso3,cPaso4][C.paso-1]();
   if(cf.telefono)h+=`<p class="nota" style="text-align:center">¿Dudas? Llámanos al <b>${esc(cf.telefono)}</b></p>`;
   if((INFO.enlaces||[]).length)h+=`<button class="btn-enl" data-act="cEnl">${esc(cf.tituloEnlaces||'Redes, promociones y más')}</button>`;
@@ -517,6 +522,8 @@ function vEnlaces(){const cf=INFO.config,t=cf.tituloEnlaces||'Redes, promociones
   return`<div class="ovl" data-act="cEnlCerrar"></div><div class="modal enl-modal${grid?' enl-grid':''}" style="--cols:${n}" role="dialog" aria-modal="true" aria-label="${esc(t)}">
    <div class="modal-h"><h2>${esc(t)}</h2><button class="x" data-act="cEnlCerrar" aria-label="Cerrar">×</button></div>
    <div class="modal-b enl-b">${(INFO.enlaces||[]).map(item).join('')}</div></div>`}
+// Barra de pasos: hacia atrás siempre; hacia delante solo si ya está elegido lo necesario.
+function pasoOk(p){if(p<=C.paso)return true;if(p===2)return !!C.servicio;if(p===3)return !!(C.servicio&&C.fecha&&C.t!=null&&C.t!=='');return false}
 function cPaso1(){
   const vis=INFO.servicios,cats=[...new Set(vis.map(s=>s.categoria||'Otros'))];
   if(C.anular)return vAnular();
@@ -949,6 +956,7 @@ const A={
  cDet(e){C.det=C.det===e.dataset.id?null:e.dataset.id;render()},
  cSvc(e){C.servicio=e.dataset.id;C.prof='';C.paso=2;cargarDias();scrollTo({top:0})},
  cIr(e){C.paso=+e.dataset.p;C.error='';render()},
+ cPasoIr(e){const p=+e.dataset.p;if(p===C.paso||!pasoOk(p))return;C.paso=p;C.error='';if(p===2&&!C.dias)cargarDias();else render();scrollTo({top:0})},
  cProf(e){C.prof=e.dataset.n;cargarDias()},
  cDia(e){C.fecha=e.dataset.f;if(C.vistaDia!=='cal')C.mesCal=null;cargarHoras()},
  cVistaDia(e){C.vistaDia=e.dataset.v;if(C.vistaDia==='cal')C.mesCal=C.fecha?C.fecha.slice(0,7):null;try{localStorage.setItem('vistaDia',C.vistaDia)}catch(err){}render()},
