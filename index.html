@@ -463,7 +463,12 @@ let VISTA_DIA='cal';try{if(localStorage.getItem('vistaDia')==='tira')VISTA_DIA='
 let VISTA_SVC='lista';try{if(localStorage.getItem('vistaSvc')==='cuadricula')VISTA_SVC='cuadricula'}catch(err){}
 // Duración como la quiere ver el negocio: «90 min» o «1 h 30 min» (Configuración > Duración en la web).
 const fmtDur=m=>{m=Math.round(+m||0);if(!(INFO&&INFO.config&&INFO.config.formatoDur==='Horas')||m<60)return m+' min';const h=Math.floor(m/60),r=m%60;return h+' h'+(r?' '+r+' min':'')};
-let C={sel:[],vista:VISTA_SVC,vistaDia:VISTA_DIA,mesCal:null,paso:1,servicio:null,prof:'',dias:null,fecha:null,horas:null,t:null,res:null,error:'',info:false,enviando:false,form:{nombre:'',telefono:'',acepto:false},cancel:null,
+// Nombre y teléfono de la última reserva hecha en este móvil: en el paso 3 salen ya puestos.
+const DATOS='citas-datos';
+function leerDatos(){try{const d=JSON.parse(localStorage.getItem(DATOS)||'null');return d&&d.nombre&&d.telefono?d:null}catch(e){return null}}
+function guardarDatos(f){try{localStorage.setItem(DATOS,JSON.stringify({nombre:String(f.nombre).trim(),telefono:String(f.telefono).trim()}))}catch(e){}}
+function datosGuardados(){const d=leerDatos();return d?{nombre:d.nombre,telefono:d.telefono,acepto:true}:{nombre:'',telefono:'',acepto:false}}
+let C={sel:[],vista:VISTA_SVC,vistaDia:VISTA_DIA,mesCal:null,paso:1,servicio:null,prof:'',dias:null,fecha:null,horas:null,t:null,res:null,error:'',info:false,enviando:false,form:datosGuardados(),editDatos:false,cancel:null,
   mias:[],confMia:null,anular:null};
 const MIAS='citas-mias';
 function leerMias(){try{const l=JSON.parse(localStorage.getItem(MIAS)||'[]');return Array.isArray(l)?l:[]}catch(e){return[]}}
@@ -585,15 +590,15 @@ function calDias(){const p2=n=>String(n).padStart(2,'0'),mapa={};C.dias.forEach(
    <div class="cal-g">${['L','M','X','J','V','S','D'].map(x=>`<span class="cal-s">${x}</span>`).join('')}${celdas}</div>
    <p class="cal-ley"><span class="cal-mk libre"></span>Con horas libres <span class="cal-mk sel"></span>Elegido</p></div>`}
 function cPaso3(){
-  const s=svcC(C.servicio),cf=INFO.config,f=C.form;
+  const s=svcC(C.servicio),cf=INFO.config,f=C.form,rec=!C.editDatos&&leerDatos()&&f.nombre&&f.telefono;
   return`<section class="c-card">
     <div class="resumen"><span><b>${esc(s.nombre)}</b><br>${cap(fLarga(C.fecha))} a las <b class="num">${toHM(C.t)}</b>${C.prof?' con '+esc(C.prof):''}</span><button class="link" data-act="cIr" data-p="2">Cambiar</button></div>
     <form data-form="reservar" style="display:grid;gap:14px" novalidate>
       <h2>Tus datos</h2>
-      <label class="field"><span>Nombre y apellido</span><input class="in" id="c-nombre" autocomplete="name" value="${esc(f.nombre)}" maxlength="80"></label>
-      <label class="field"><span>Teléfono (para avisarte de la cita)</span><input class="in" id="c-tel" type="tel" inputmode="tel" autocomplete="tel" value="${esc(f.telefono)}" maxlength="20"></label>
+      ${rec?`<div class="mia"><span>Reservas como <b>${esc(f.nombre)}</b> · <span class="num">${esc(f.telefono)}</span></span><button type="button" class="link" data-act="cDatosCambiar" style="justify-self:start">¿No eres tú? Cambiar</button></div>`:`<label class="field"><span>Nombre y apellido</span><input class="in" id="c-nombre" autocomplete="name" value="${esc(f.nombre)}" maxlength="80"></label>
+      <label class="field"><span>Teléfono (para avisarte de la cita)</span><input class="in" id="c-tel" type="tel" inputmode="tel" autocomplete="tel" value="${esc(f.telefono)}" maxlength="20"></label>`}
       <label class="trampa" aria-hidden="true">Web<input id="c-web" tabindex="-1" autocomplete="off"></label>
-      <label class="consent"><input type="checkbox" id="c-acepto" ${f.acepto?'checked':''}><span>${esc(cf.consentimiento)} <button type="button" class="link" data-act="cInfo">${C.info?'Ocultar información':'Más información'}</button></span></label>
+      ${rec?`<p class="nota">Ya aceptaste el uso de tus datos para tus citas. <button type="button" class="link" data-act="cInfo">${C.info?'Ocultar información':'Más información'}</button></p>`:`<label class="consent"><input type="checkbox" id="c-acepto" ${f.acepto?'checked':''}><span>${esc(cf.consentimiento)} <button type="button" class="link" data-act="cInfo">${C.info?'Ocultar información':'Más información'}</button></span></label>`}
       ${C.info?`<div class="info"><div><b>Responsable:</b> ${esc(cf.responsable)}</div><div><b>Para qué:</b> gestionar tu cita y avisarte de cambios o recordatorios.</div><div><b>Qué guardamos:</b> nombre, teléfono y tus citas. No se comparten con nadie.</div><div><b>Borrar tus datos:</b> escribe a ${esc(cf.emailPrivacidad)}</div></div>`:''}
       ${C.error?`<p class="err" role="alert">${esc(C.error)}</p>`:''}
       <button class="btn btn-p" type="submit" style="padding:12px" ${C.enviando?'disabled':''}>${C.enviando?'Reservando…':'Confirmar cita'}</button>
@@ -991,6 +996,7 @@ const A={
  cMes(e){const[y,m]=C.mesCal.split('-').map(Number),d=new Date(y,m-1+Number(e.dataset.d),1);C.mesCal=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');render()},
  cHora(e){C.t=+e.dataset.t;C.paso=3;C.error='';render();scrollTo({top:0})},
  cInfo(){leerForm();C.info=!C.info;render()},
+ cDatosCambiar(){C.editDatos=true;C.form={nombre:'',telefono:'',acepto:false};render();setTimeout(()=>document.getElementById('c-nombre')?.focus(),0)},
  cIcs(e){const cod=e.dataset.cod,c=(C.res&&C.res.cita&&C.res.cita.codigo===cod)?C.res.cita:C.mias.find(x=>x.codigo===cod);if(c)descargarIcs(c)},
  async cOtra(){C={...C,sel:[],yaMas:false,preguntaMas:false,paso:1,servicio:null,prof:'',dias:null,fecha:null,horas:null,res:null,error:'',anular:null,confMia:null};await cargarMias();render();scrollTo({top:0})},
  cAnularAbrir(){C.anular={tel:'',cod:'',error:'',cita:null};C.confMia=null;render();scrollTo({top:0})},
@@ -1123,7 +1129,7 @@ document.addEventListener('submit',async e=>{const f=e.target.dataset.form;if(!f
     try{const r=await api('publicoReservar',{servicio:C.servicio,prof:C.prof,fecha:C.fecha,t:C.t,nombre:fm.nombre,telefono:fm.telefono,acepto:true,web:(document.getElementById('c-web')||{}).value||''});
       C.enviando=false;
       if(r.error==='ocupada'){C.paso=2;toast('Esa hora acaba de ocuparse. Elige otra.');return cargarHoras()}
-      C.res=r;C.paso=4;recordarCita(r.cita,r.telefono);C.form={nombre:'',telefono:'',acepto:false};render();scrollTo({top:0})}
+      C.res=r;C.paso=4;recordarCita(r.cita,r.telefono);guardarDatos(fm);C.form=datosGuardados();C.editDatos=false;render();scrollTo({top:0})}
     catch(err){C.enviando=false;C.error=msgErr(err)||'No se ha podido reservar. Inténtalo de nuevo.';render()}
     return}
   if(f==='login'){const u=document.getElementById('l-u').value,p=document.getElementById('l-p').value;
